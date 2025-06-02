@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rahmat Maafin Gua</title>
+<style>
+  /* Reset */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background-color: #000;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+  }
+
+  #stars {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #container {
+    position: relative;
+    z-index: 10;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #message, #final-message {
+    font-size: 2.25rem;
+    margin-bottom: 30px;
+    text-shadow: 0 0 8px rgba(255,255,255,0.6);
+    opacity: 1;
+    transition: opacity 0.8s ease;
+    user-select: none;
+  }
+
+  #final-message {
+    opacity: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  #button-container {
+    display: inline-flex;
+    gap: 30px;
+    position: relative;
+    transition: opacity 0.8s ease;
+    user-select: none;
+  }
+
+  .btn {
+    font-weight: 700;
+    font-size: 1.25rem;
+    padding: 14px 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    user-select: none;
+    outline: none;
+    position: relative; /* to allow transform */
+  }
+
+  #btn-no {
+    background-color: #e53935;
+    color: #fff;
+  }
+
+  #btn-yes {
+    background-color: #388e3c;
+    color: #fff;
+  }
+
+  #btn-yes.hovered {
+    background-color: #1976d2; /* blue */
+  }
+
+
+  #footer-text {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.45);
+    font-style: italic;
+    user-select: text;
+    z-index: 20;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="container">
+  <div id="message">Rahmat lu mau gak maafin gua :&gt;</div>
+  <div id="button-container">
+    <button id="btn-no" class="btn">No</button>
+    <button id="btn-yes" class="btn">Yes</button>
+  </div>
+  <div id="final-message">Terimakasih ya Rahmat saudaranya Aizen :&gt;</div>
+</div>
+
+<div id="footer-text">Web by Zharif</div>
+
+<script>
+  // Stars setup
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+
+  const starCount = 150;
+  const stars = [];
+
+  function randomRange(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function createStars() {
+    stars.length = 0;
+    for(let i = 0; i < starCount; i++) {
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: Math.random() * 1.2 + 0.2,
+        alpha: Math.random() * 0.8 + 0.2,
+        twinkleDir: Math.random() > 0.5 ? 1 : -1,
+        twinkleSpeed: randomRange(0.001, 0.008)
+      });
+    }
+  }
+
+  function drawStars() {
+    ctx.clearRect(0, 0, width, height);
+    stars.forEach(star => {
+      star.alpha += star.twinkleSpeed * star.twinkleDir;
+      if(star.alpha <= 0.2) star.twinkleDir = 1;
+      else if(star.alpha >= 1) star.twinkleDir = -1;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha.toFixed(2)})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  }
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    createStars();
+  });
+
+  createStars();
+  drawStars();
+
+  // Button references
+  const btnNo = document.getElementById('btn-no');
+  const btnYes = document.getElementById('btn-yes');
+  const buttonContainer = document.getElementById('button-container');
+  const message = document.getElementById('message');
+  const finalMessage = document.getElementById('final-message');
+
+  // Current translate offset for No button
+  let offsetX = 0;
+  let offsetY = 0;
+
+  // To get bounding rect of No button for distance calculation
+  function getBtnCenter() {
+    const rect = btnNo.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+  }
+
+  // Increased flee distance and allowed travel offset
+  buttonContainer.addEventListener('mousemove', e => {
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+
+    const btnCenter = getBtnCenter();
+
+    const threshold = 130; // Increase threshold distance for fleeing
+
+    const distX = mouseX - btnCenter.x;
+    const distY = mouseY - btnCenter.y;
+    const dist = Math.hypot(distX, distY);
+
+    if(dist < threshold) {
+      // Move away more aggressively
+      const moveStep = 40;
+      // Calculate vector from mouse to button center
+      let vecX = btnCenter.x - mouseX;
+      let vecY = btnCenter.y - mouseY;
+      // Normalize
+      let vecLength = Math.max(Math.hypot(vecX, vecY), 0.01);
+      let normX = vecX / vecLength;
+      let normY = vecY / vecLength;
+      offsetX += normX * moveStep;
+      offsetY += normY * moveStep;
+
+      // Clamp the movement so button stays visible but flees far
+      const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+      offsetX = clamp(offsetX, -150, 150);
+      offsetY = clamp(offsetY, -90, 90);
+
+      btnNo.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+    }
+  });
+
+  // Button Yes changes color and final screen output
+  btnYes.addEventListener('mouseenter', () => {
+    btnYes.classList.add('hovered');
+  });
+
+  btnYes.addEventListener('mouseleave', () => {
+    btnYes.classList.remove('hovered');
+  });
+
+  btnYes.addEventListener('click', () => {
+    // Fade out message and buttons
+    message.style.opacity = '0';
+    buttonContainer.style.opacity = '0';
+
+    // After fade out delay, fade in final message
+    setTimeout(() => {
+      finalMessage.style.pointerEvents = 'auto';
+      finalMessage.style.opacity = '1';
+
+      // Hide message and buttons from flow after fade out
+      message.style.display = 'none';
+      buttonContainer.style.display = 'none';
+    }, 850);
+  });
+</script>
+</body>
+</html>
